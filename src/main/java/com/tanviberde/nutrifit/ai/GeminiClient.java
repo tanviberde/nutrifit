@@ -1,6 +1,7 @@
 package com.tanviberde.nutrifit.ai;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tanviberde.nutrifit.exception.AiServiceException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -13,6 +14,7 @@ import java.util.Map;
 public class GeminiClient {
 
     private final WebClient webClient;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${app.ai.gemini.api-key}")
     private String apiKey;
@@ -25,29 +27,45 @@ public class GeminiClient {
     }
 
     public String generateContent(String prompt) {
-        try {
-            Map<String, Object> requestBody = Map.of(
-                    "contents", List.of(
-                            Map.of("parts", List.of(Map.of("text", prompt)))
-                    )
-            );
+        int maxAttempts = 3;
+        long delayMs = 2000;
 
-            JsonNode response = webClient.post()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/models/{model}:generateContent")
-                            .queryParam("key", apiKey)
-                            .build(model))
-                    .bodyValue(requestBody)
-                    .retrieve()
-                    .bodyToMono(JsonNode.class)
-                    .block();
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                Map<String, Object> requestBody = Map.of(
+                        "contents", List.of(
+                                Map.of("parts", List.of(Map.of("text", prompt)))
+                        )
+                );
 
-            return extractText(response);
-        } catch (AiServiceException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new AiServiceException("Failed to generate AI content: " + e.getMessage(), e);
+                String rawResponse = webClient.post()
+                        .uri(uriBuilder -> uriBuilder
+                                .path("/models/{model}:generateContent")
+                                .queryParam("key", apiKey)
+                                .build(model))
+                        .bodyValue(requestBody)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .block();
+
+                JsonNode response = objectMapper.readTree(rawResponse);
+                return extractText(response);
+            } catch (Exception e) {
+                boolean isLastAttempt = attempt == maxAttempts;
+                if (isLastAttempt) {
+                    throw new AiServiceException(
+                            "Failed to generate AI content after " + maxAttempts + " attempts: " + e.getMessage(), e);
+                }
+                try {
+                    Thread.sleep(delayMs);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+                delayMs *= 2;
+            }
         }
+
+        throw new AiServiceException("Failed to generate AI content: exhausted retries");
     }
 
     private String extractText(JsonNode response) {

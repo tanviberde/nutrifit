@@ -8,11 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class AiResponseParser {
 
-    private final ObjectMapper objectMapper;
-
-    public AiResponseParser(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public HabitAnalysisResponse parseHabitAnalysis(String rawResponse) {
         try {
