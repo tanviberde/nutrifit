@@ -18,4 +18,6 @@ public interface MealRepository extends JpaRepository<Meal, Long> {
 
     List<Meal> findByUserIdAndMealDateBetweenAndDeletedFalse(
             Long userId, LocalDate startDate, LocalDate endDate);
+
+    long countByUserIdAndDeletedFalse(Long userId);
 }

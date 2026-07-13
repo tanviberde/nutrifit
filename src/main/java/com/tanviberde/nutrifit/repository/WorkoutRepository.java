@@ -18,4 +18,6 @@ public interface WorkoutRepository extends JpaRepository<Workout, Long> {
 
     List<Workout> findByUserIdAndWorkoutDateBetweenAndDeletedFalse(
             Long userId, LocalDate startDate, LocalDate endDate);
+
+    long countByUserIdAndDeletedFalse(Long userId);
 }

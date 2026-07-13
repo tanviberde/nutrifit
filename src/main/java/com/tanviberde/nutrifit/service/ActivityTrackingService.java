@@ -13,4 +13,8 @@ public interface ActivityTrackingService {
     void logWeightActivity(Long userId, LocalDate date);
 
     int calculateCurrentStreak(Long userId);
+
+    int calculateWorkoutStreak(Long userId);
+
+    int calculateNutritionStreak(Long userId);
 }

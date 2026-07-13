@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import com.tanviberde.nutrifit.service.GamificationService;
 
 import java.time.LocalDate;
 
@@ -24,6 +25,7 @@ public class MealServiceImpl implements MealService {
     private final MealRepository mealRepository;
     private final UserRepository userRepository;
     private final ActivityTrackingService activityTrackingService;
+    private final GamificationService gamificationService;
 
     @Override
     public MealResponse createMeal(Long userId, MealRequest request) {
@@ -44,6 +46,7 @@ public class MealServiceImpl implements MealService {
 
         activityTrackingService.recalculateDailyProgress(userId, savedMeal.getMealDate());
         activityTrackingService.logMealActivity(userId, savedMeal.getMealDate());
+        gamificationService.checkAndAwardAchievements(userId);
 
         return MealResponse.fromEntity(savedMeal);
     }

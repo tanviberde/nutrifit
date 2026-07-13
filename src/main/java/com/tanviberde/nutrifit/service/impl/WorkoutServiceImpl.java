@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import com.tanviberde.nutrifit.service.GamificationService;
 
 import java.time.LocalDate;
 
@@ -24,6 +25,7 @@ public class WorkoutServiceImpl implements WorkoutService {
     private final WorkoutRepository workoutRepository;
     private final UserRepository userRepository;
     private final ActivityTrackingService activityTrackingService;
+    private final GamificationService gamificationService;
 
     @Override
     public WorkoutResponse createWorkout(Long userId, WorkoutRequest request) {
@@ -41,6 +43,7 @@ public class WorkoutServiceImpl implements WorkoutService {
 
         activityTrackingService.recalculateDailyProgress(userId, savedWorkout.getWorkoutDate());
         activityTrackingService.logWorkoutActivity(userId, savedWorkout.getWorkoutDate());
+        gamificationService.checkAndAwardAchievements(userId);
 
         return WorkoutResponse.fromEntity(savedWorkout);
     }

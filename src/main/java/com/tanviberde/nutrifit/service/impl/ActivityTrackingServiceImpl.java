@@ -3,7 +3,6 @@ package com.tanviberde.nutrifit.service.impl;
 import com.tanviberde.nutrifit.entity.ActivityLog;
 import com.tanviberde.nutrifit.entity.DailyProgress;
 import com.tanviberde.nutrifit.entity.Meal;
-import com.tanviberde.nutrifit.entity.User;
 import com.tanviberde.nutrifit.entity.Workout;
 import com.tanviberde.nutrifit.repository.ActivityLogRepository;
 import com.tanviberde.nutrifit.repository.DailyProgressRepository;
@@ -80,19 +79,40 @@ public class ActivityTrackingServiceImpl implements ActivityTrackingService {
 
     @Override
     public int calculateCurrentStreak(Long userId) {
-        LocalDate today = LocalDate.now();
-        LocalDate rangeStart = today.minusDays(STREAK_LOOKBACK_DAYS);
-
-        List<ActivityLog> logs = activityLogRepository
-                .findByUserIdAndActivityDateBetweenAndDeletedFalseOrderByActivityDateDesc(
-                        userId, rangeStart, today);
-
-        Set<LocalDate> activeDates = logs.stream()
+        Set<LocalDate> activeDates = getRecentLogs(userId).stream()
                 .filter(log -> log.isLoggedMeal() || log.isLoggedWorkout())
                 .map(ActivityLog::getActivityDate)
                 .collect(Collectors.toSet());
 
-        return StreakCalculator.calculateStreak(activeDates, today);
+        return StreakCalculator.calculateStreak(activeDates, LocalDate.now());
+    }
+
+    @Override
+    public int calculateWorkoutStreak(Long userId) {
+        Set<LocalDate> activeDates = getRecentLogs(userId).stream()
+                .filter(ActivityLog::isLoggedWorkout)
+                .map(ActivityLog::getActivityDate)
+                .collect(Collectors.toSet());
+
+        return StreakCalculator.calculateStreak(activeDates, LocalDate.now());
+    }
+
+    @Override
+    public int calculateNutritionStreak(Long userId) {
+        Set<LocalDate> activeDates = getRecentLogs(userId).stream()
+                .filter(ActivityLog::isLoggedMeal)
+                .map(ActivityLog::getActivityDate)
+                .collect(Collectors.toSet());
+
+        return StreakCalculator.calculateStreak(activeDates, LocalDate.now());
+    }
+
+    private List<ActivityLog> getRecentLogs(Long userId) {
+        LocalDate today = LocalDate.now();
+        LocalDate rangeStart = today.minusDays(STREAK_LOOKBACK_DAYS);
+        return activityLogRepository
+                .findByUserIdAndActivityDateBetweenAndDeletedFalseOrderByActivityDateDesc(
+                        userId, rangeStart, today);
     }
 
     private void upsertActivityLog(Long userId, LocalDate date, Consumer<ActivityLog> mutator) {
