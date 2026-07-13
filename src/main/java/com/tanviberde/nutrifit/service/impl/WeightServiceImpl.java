@@ -8,6 +8,7 @@ import com.tanviberde.nutrifit.exception.ResourceNotFoundException;
 import com.tanviberde.nutrifit.exception.UnauthorizedException;
 import com.tanviberde.nutrifit.repository.UserRepository;
 import com.tanviberde.nutrifit.repository.WeightEntryRepository;
+import com.tanviberde.nutrifit.service.ActivityTrackingService;
 import com.tanviberde.nutrifit.service.WeightService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class WeightServiceImpl implements WeightService {
 
     private final WeightEntryRepository weightEntryRepository;
     private final UserRepository userRepository;
+    private final ActivityTrackingService activityTrackingService;
 
     @Override
     public WeightResponse createWeightEntry(Long userId, WeightRequest request) {
@@ -32,6 +34,9 @@ public class WeightServiceImpl implements WeightService {
                 .build();
 
         WeightEntry savedEntry = weightEntryRepository.save(entry);
+
+        activityTrackingService.logWeightActivity(userId, savedEntry.getEntryDate());
+
         return WeightResponse.fromEntity(savedEntry);
     }
 
@@ -43,6 +48,9 @@ public class WeightServiceImpl implements WeightService {
         entry.setEntryDate(request.getEntryDate());
 
         WeightEntry updatedEntry = weightEntryRepository.save(entry);
+
+        activityTrackingService.logWeightActivity(userId, updatedEntry.getEntryDate());
+
         return WeightResponse.fromEntity(updatedEntry);
     }
 

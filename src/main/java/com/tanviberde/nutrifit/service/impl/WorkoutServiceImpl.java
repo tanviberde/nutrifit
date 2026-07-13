@@ -8,11 +8,14 @@ import com.tanviberde.nutrifit.exception.ResourceNotFoundException;
 import com.tanviberde.nutrifit.exception.UnauthorizedException;
 import com.tanviberde.nutrifit.repository.UserRepository;
 import com.tanviberde.nutrifit.repository.WorkoutRepository;
+import com.tanviberde.nutrifit.service.ActivityTrackingService;
 import com.tanviberde.nutrifit.service.WorkoutService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +23,7 @@ public class WorkoutServiceImpl implements WorkoutService {
 
     private final WorkoutRepository workoutRepository;
     private final UserRepository userRepository;
+    private final ActivityTrackingService activityTrackingService;
 
     @Override
     public WorkoutResponse createWorkout(Long userId, WorkoutRequest request) {
@@ -34,12 +38,17 @@ public class WorkoutServiceImpl implements WorkoutService {
                 .build();
 
         Workout savedWorkout = workoutRepository.save(workout);
+
+        activityTrackingService.recalculateDailyProgress(userId, savedWorkout.getWorkoutDate());
+        activityTrackingService.logWorkoutActivity(userId, savedWorkout.getWorkoutDate());
+
         return WorkoutResponse.fromEntity(savedWorkout);
     }
 
     @Override
     public WorkoutResponse updateWorkout(Long userId, Long workoutId, WorkoutRequest request) {
         Workout workout = getOwnedWorkout(userId, workoutId);
+        LocalDate oldDate = workout.getWorkoutDate();
 
         workout.setWorkoutName(request.getWorkoutName());
         workout.setDurationMinutes(request.getDurationMinutes());
@@ -47,14 +56,25 @@ public class WorkoutServiceImpl implements WorkoutService {
         workout.setWorkoutDate(request.getWorkoutDate());
 
         Workout updatedWorkout = workoutRepository.save(workout);
+
+        activityTrackingService.recalculateDailyProgress(userId, oldDate);
+        if (!oldDate.equals(updatedWorkout.getWorkoutDate())) {
+            activityTrackingService.recalculateDailyProgress(userId, updatedWorkout.getWorkoutDate());
+        }
+        activityTrackingService.logWorkoutActivity(userId, updatedWorkout.getWorkoutDate());
+
         return WorkoutResponse.fromEntity(updatedWorkout);
     }
 
     @Override
     public void deleteWorkout(Long userId, Long workoutId) {
         Workout workout = getOwnedWorkout(userId, workoutId);
+        LocalDate workoutDate = workout.getWorkoutDate();
+
         workout.setDeleted(true);
         workoutRepository.save(workout);
+
+        activityTrackingService.recalculateDailyProgress(userId, workoutDate);
     }
 
     @Override

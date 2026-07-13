@@ -8,11 +8,14 @@ import com.tanviberde.nutrifit.exception.ResourceNotFoundException;
 import com.tanviberde.nutrifit.exception.UnauthorizedException;
 import com.tanviberde.nutrifit.repository.MealRepository;
 import com.tanviberde.nutrifit.repository.UserRepository;
+import com.tanviberde.nutrifit.service.ActivityTrackingService;
 import com.tanviberde.nutrifit.service.MealService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +23,7 @@ public class MealServiceImpl implements MealService {
 
     private final MealRepository mealRepository;
     private final UserRepository userRepository;
+    private final ActivityTrackingService activityTrackingService;
 
     @Override
     public MealResponse createMeal(Long userId, MealRequest request) {
@@ -37,12 +41,17 @@ public class MealServiceImpl implements MealService {
                 .build();
 
         Meal savedMeal = mealRepository.save(meal);
+
+        activityTrackingService.recalculateDailyProgress(userId, savedMeal.getMealDate());
+        activityTrackingService.logMealActivity(userId, savedMeal.getMealDate());
+
         return MealResponse.fromEntity(savedMeal);
     }
 
     @Override
     public MealResponse updateMeal(Long userId, Long mealId, MealRequest request) {
         Meal meal = getOwnedMeal(userId, mealId);
+        LocalDate oldDate = meal.getMealDate();
 
         meal.setMealName(request.getMealName());
         meal.setCalories(request.getCalories());
@@ -53,14 +62,25 @@ public class MealServiceImpl implements MealService {
         meal.setMealDate(request.getMealDate());
 
         Meal updatedMeal = mealRepository.save(meal);
+
+        activityTrackingService.recalculateDailyProgress(userId, oldDate);
+        if (!oldDate.equals(updatedMeal.getMealDate())) {
+            activityTrackingService.recalculateDailyProgress(userId, updatedMeal.getMealDate());
+        }
+        activityTrackingService.logMealActivity(userId, updatedMeal.getMealDate());
+
         return MealResponse.fromEntity(updatedMeal);
     }
 
     @Override
     public void deleteMeal(Long userId, Long mealId) {
         Meal meal = getOwnedMeal(userId, mealId);
+        LocalDate mealDate = meal.getMealDate();
+
         meal.setDeleted(true);
         mealRepository.save(meal);
+
+        activityTrackingService.recalculateDailyProgress(userId, mealDate);
     }
 
     @Override
