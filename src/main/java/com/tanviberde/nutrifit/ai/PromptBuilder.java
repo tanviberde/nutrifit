@@ -115,4 +115,51 @@ public class PromptBuilder {
                 weightTrendData
         );
     }
+
+    public String buildRecipeGenerationPrompt(
+            User user,
+            List<String> allergies,
+            List<String> dislikedFoods,
+            double calorieTarget,
+            double proteinTarget,
+            String avoidTitle) {
+
+        String allergyText = allergies.isEmpty()
+                ? "None specified."
+                : String.join(", ", allergies);
+
+        String dislikedText = dislikedFoods.isEmpty()
+                ? "None specified."
+                : String.join(", ", dislikedFoods);
+
+        String avoidInstruction = avoidTitle == null || avoidTitle.isBlank()
+                ? ""
+                : "The client did not like a previous recipe called \"" + avoidTitle
+                + "\". Generate something meaningfully different from that.\n";
+
+        return """
+                You are a professional recipe developer creating a single recipe for a client, \
+                tailored exactly to their nutritional targets and dietary restrictions. Respond \
+                with ONLY a valid JSON object, no markdown formatting, no code fences, no preamble \
+                text. The JSON must have exactly these fields: title (string), description (string, \
+                1-2 sentences), calories (number), protein (number), carbs (number), fat (number), \
+                fibre (number), and ingredients (array of objects, each with name (string), \
+                quantity (number), unit (string)).
+
+                Diet preference: %s
+                Allergies (NEVER include these ingredients, even in small amounts): %s
+                Disliked foods (avoid these where reasonably possible): %s
+                Target calories for this recipe: %.0f
+                Target protein for this recipe: %.0fg
+                %s
+                Respond with the JSON object now.
+                """.formatted(
+                user.getDietPreference(),
+                allergyText,
+                dislikedText,
+                calorieTarget,
+                proteinTarget,
+                avoidInstruction
+        );
+    }
 }

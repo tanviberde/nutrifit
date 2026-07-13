@@ -19,6 +19,15 @@ public class AiResponseParser {
         }
     }
 
+    public GeneratedRecipeData parseRecipeGeneration(String rawResponse) {
+        try {
+            String cleaned = stripMarkdownFences(rawResponse);
+            return objectMapper.readValue(cleaned, GeneratedRecipeData.class);
+        } catch (Exception e) {
+            throw new AiServiceException("Failed to parse AI recipe response: " + e.getMessage(), e);
+        }
+    }
+
     private String stripMarkdownFences(String text) {
         String trimmed = text.trim();
         if (trimmed.startsWith("```")) {
