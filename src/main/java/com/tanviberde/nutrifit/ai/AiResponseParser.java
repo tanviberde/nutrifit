@@ -28,6 +28,15 @@ public class AiResponseParser {
         }
     }
 
+    public GeneratedRoutineData parseWorkoutRoutine(String rawResponse) {
+        try {
+            String cleaned = stripMarkdownFences(rawResponse);
+            return objectMapper.readValue(cleaned, GeneratedRoutineData.class);
+        } catch (Exception e) {
+            throw new AiServiceException("Failed to parse AI workout routine response: " + e.getMessage(), e);
+        }
+    }
+
     private String stripMarkdownFences(String text) {
         String trimmed = text.trim();
         if (trimmed.startsWith("```")) {

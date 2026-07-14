@@ -10,6 +10,34 @@ import java.util.List;
 
 @Component
 public class PromptBuilder {
+    public String buildWorkoutRoutinePrompt(
+            User user, int daysPerWeek, String equipmentAccess) {
+
+        return """
+            You are a certified strength and conditioning coach creating a structured workout \
+            routine for a client. Respond with ONLY a valid JSON object, no markdown formatting, \
+            no code fences, no preamble text. The JSON must have exactly these fields: title \
+            (string), description (string, 1-2 sentences), and exercises (array of objects, each \
+            with dayLabel (string, e.g. "Day 1 - Push"), exerciseName (string), sets (number), \
+            reps (string, e.g. "8-12" or "AMRAP"), restSeconds (number)).
+
+            Client fitness goal: %s
+            Client activity level: %s
+            Days per week available: %d
+            Equipment access: %s
+
+            Design a complete %d-day split appropriate for their goal and equipment. Group \
+            exercises under their correct dayLabel. Include 4-6 exercises per day.
+
+            Respond with the JSON object now.
+            """.formatted(
+                user.getFitnessGoal(),
+                user.getActivityLevel(),
+                daysPerWeek,
+                equipmentAccess,
+                daysPerWeek
+        );
+    }
 
     public String buildWeeklyReportPrompt(User user, PeriodSummaryResponse summary) {
         return """
